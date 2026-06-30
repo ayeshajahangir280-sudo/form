@@ -1,6 +1,6 @@
 # Indoor Champions Registration Backend
 
-Express + MongoDB backend for the registration form. It is ready for Vercel serverless deployment.
+Express + MongoDB + Cloudinary backend for the registration form. It is ready for Render Web Service deployment.
 
 ## Local setup
 
@@ -24,21 +24,28 @@ npm run dev
 
 The API runs at `http://localhost:4000`.
 
-## Vercel environment variables
+## Render deployment
 
-Set these in the Vercel project settings:
+Deploy `D:\Ayes\New folder\form` as a Render Web Service.
+
+- Build command: `npm install`
+- Start command: `npm start`
+- Health check path: `/`
+
+Set these environment variables in Render:
 
 ```bash
 MONGODB_URI=mongodb+srv://ayeshajahangir33344_db_user:YOUR_PASSWORD@cluster0.ibyk2xl.mongodb.net/registrations?retryWrites=true&w=majority&appName=Cluster0
-CORS_ORIGIN=https://your-frontend-domain.vercel.app
+CORS_ORIGIN=https://reg-form-1.vercel.app
 ```
 
-Cloudinary is optional. If you add these, uploaded photos are stored in Cloudinary. If you skip them, photos are stored in MongoDB as data URLs.
+Cloudinary is configured through these Render environment variables:
 
 ```bash
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
+CLOUDINARY_CLOUD_NAME=dvruvhnai
+CLOUDINARY_API_KEY=535361679594275
+CLOUDINARY_API_SECRET=YOUR_CLOUDINARY_SECRET
+CLOUDINARY_FOLDER=registration-photos
 ```
 
 ## Routes
@@ -47,4 +54,4 @@ CLOUDINARY_API_SECRET=
 - `GET /api/registrations`
 - `POST /api/registrations`
 
-For the frontend, set `VITE_API_BASE_URL` to this backend's deployed Vercel URL.
+After Render deploys, copy the Render backend URL and set the frontend API base URL to that Render URL.
