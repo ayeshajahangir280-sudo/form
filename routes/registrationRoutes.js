@@ -51,7 +51,9 @@ function validateRegistration(body, file) {
   if (!/^\d{1,3}$/.test(values.jerseyNumber)) errors.jerseyNumber = "Jersey number must be whole numbers only";
   if (!jerseySizes.has(values.jerseySize)) errors.jerseySize = "Select a jersey size";
   if (!sleeveOptions.has(values.preferredSleeves)) errors.preferredSleeves = "Select preferred sleeves";
-  if (!values.currentClub || values.currentClub.length > 120) errors.currentClub = "Current club/team is required";
+  if (values.currentClub && values.currentClub.length > 120) {
+    errors.currentClub = "Current club/team must be 120 characters or fewer";
+  }
   if (!availabilityOptions.has(values.availability)) errors.availability = "Select availability";
   if (values.availability === "Missing few matches" && values.notAvailableOn.length === 0) {
     errors.notAvailableOn = "Select at least one match you are not available on";

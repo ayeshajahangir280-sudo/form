@@ -27,7 +27,7 @@ const registrationSchema = new mongoose.Schema(
       required: true,
       enum: ["Full Sleeves", "Half Sleeves"],
     },
-    currentClub: { type: String, required: true, trim: true, maxlength: 120 },
+    currentClub: { type: String, trim: true, maxlength: 120 },
     availability: {
       type: String,
       required: true,
