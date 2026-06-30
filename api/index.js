@@ -1,0 +1,89 @@
+require("dotenv").config();
+
+const express = require("express");
+const cors = require("cors");
+
+const connectDB = require("../config/db");
+const registrationRoutes = require("../routes/registrationRoutes");
+
+const app = express();
+const port = process.env.PORT || 4000;
+
+const allowedOrigins = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
+  }),
+);
+
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+
+app.get("/", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "Indoor Champions registration API",
+    routes: ["/api/health", "/api/registrations"],
+  });
+});
+
+app.get("/api/health", async (_req, res, next) => {
+  try {
+    await connectDB();
+    res.json({ ok: true, database: "connected" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.use("/api/registrations", registrationRoutes);
+
+app.use((_req, res) => {
+  res.status(404).json({ ok: false, message: "Route not found" });
+});
+
+app.use((error, _req, res, _next) => {
+  if (error.message === "Only JPG, JPEG, or PNG files are allowed") {
+    return res.status(400).json({
+      ok: false,
+      message: error.message,
+      errors: { photo: error.message },
+    });
+  }
+
+  if (error.code === "LIMIT_FILE_SIZE") {
+    return res.status(400).json({
+      ok: false,
+      message: "File must be 2 MB or smaller",
+      errors: { photo: "File must be 2 MB or smaller" },
+    });
+  }
+
+  console.error(error);
+  return res.status(500).json({
+    ok: false,
+    message:
+      process.env.NODE_ENV === "production"
+        ? "Server error. Please try again later."
+        : error.message,
+  });
+});
+
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`API running on http://localhost:${port}`);
+  });
+}
+
+module.exports = app;
