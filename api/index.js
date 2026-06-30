@@ -9,22 +9,33 @@ const registrationRoutes = require("../routes/registrationRoutes");
 const app = express();
 const port = process.env.PORT || 4000;
 
-const allowedOrigins = (process.env.CORS_ORIGIN || "")
+const defaultAllowedOrigins = [
+  "https://reg-form-1.vercel.app",
+  "http://localhost:3000",
+  "http://localhost:5173",
+];
+
+const allowedOrigins = (process.env.CORS_ORIGIN || defaultAllowedOrigins.join(","))
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
 
-      callback(new Error("Not allowed by CORS"));
-    },
-  }),
+    callback(new Error("Not allowed by CORS"));
+  },
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204,
+};
+
+app.use(
+  cors(corsOptions),
 );
 
 app.use(express.json({ limit: "1mb" }));
