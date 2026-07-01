@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 
-const connectDB = require("../config/db");
+const { connectDB, getDBStatus } = require("../config/db");
 const registrationRoutes = require("../routes/registrationRoutes");
 
 const app = express();
@@ -34,9 +34,8 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
-app.use(
-  cors(corsOptions),
-);
+app.disable("x-powered-by");
+app.use(cors(corsOptions));
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
@@ -44,18 +43,19 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.get("/", (_req, res) => {
   res.json({
     ok: true,
-    service: "Indoor Champions registration API",
+    service: "Indoor Cricket Rising League 3 registration API",
     routes: ["/api/health", "/api/registrations"],
   });
 });
 
-app.get("/api/health", async (_req, res, next) => {
-  try {
-    await connectDB();
-    res.json({ ok: true, database: "connected" });
-  } catch (error) {
-    next(error);
-  }
+app.get("/api/health", (_req, res) => {
+  const database = getDBStatus();
+
+  res.json({
+    ok: true,
+    database: database.connected ? "connected" : "warming",
+    readyState: database.readyState,
+  });
 });
 
 app.use("/api/registrations", registrationRoutes);
@@ -94,6 +94,10 @@ app.use((error, _req, res, _next) => {
 if (require.main === module) {
   app.listen(port, () => {
     console.log(`API running on http://localhost:${port}`);
+  });
+
+  connectDB().catch((error) => {
+    console.error("Initial MongoDB connection failed:", error.message);
   });
 }
 

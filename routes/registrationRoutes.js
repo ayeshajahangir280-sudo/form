@@ -1,7 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 
-const connectDB = require("../config/db");
+const { connectDB } = require("../config/db");
 const { uploadBuffer } = require("../config/cloudinary");
 const upload = require("../middleware/upload");
 const Registration = require("../models/Registration");
@@ -65,8 +65,14 @@ function validateRegistration(body, file) {
 }
 
 function mapRegistration(registration) {
+  const id = registration.id || registration._id?.toString();
+  const photoUrl =
+    registration.photoStorage === "cloudinary"
+      ? registration.photoUrl
+      : `/api/registrations/${id}/photo`;
+
   return {
-    id: registration.id,
+    id,
     firstName: registration.firstName,
     lastName: registration.lastName,
     fullName: registration.fullName,
@@ -81,8 +87,8 @@ function mapRegistration(registration) {
     availability: registration.availability,
     notAvailableOn: registration.notAvailableOn,
     feeAgreement: registration.feeAgreement,
-    photoPath: registration.photoPath,
-    photoUrl: registration.photoUrl,
+    photoPath: photoUrl,
+    photoUrl,
     createdAt: registration.createdAt,
   };
 }
@@ -90,18 +96,53 @@ function mapRegistration(registration) {
 router.get("/", async (_req, res, next) => {
   try {
     await connectDB();
-    const registrations = await Registration.find().sort({ createdAt: -1 }).lean({ virtuals: true });
+    const registrations = await Registration.find()
+      .sort({ createdAt: -1 })
+      .select(
+        "firstName lastName fullName email mobile whatsappNumber jerseyName jerseyNumber jerseySize preferredSleeves currentClub availability notAvailableOn feeAgreement photoUrl photoStorage createdAt",
+      )
+      .limit(500)
+      .lean({ virtuals: true });
 
     res.json({
       ok: true,
-      registrations: registrations.map((registration) => ({
-        ...registration,
-        id: registration._id.toString(),
-        _id: undefined,
-      })),
+      registrations: registrations.map(mapRegistration),
     });
   } catch (error) {
     next(error);
+  }
+});
+
+router.get("/:id/photo", async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(404).json({ ok: false, message: "Photo not found" });
+    }
+
+    await connectDB();
+    const registration = await Registration.findById(req.params.id)
+      .select("photoUrl photoPath photoStorage")
+      .lean();
+
+    if (!registration?.photoUrl && !registration?.photoPath) {
+      return res.status(404).json({ ok: false, message: "Photo not found" });
+    }
+
+    const photo = registration.photoUrl || registration.photoPath;
+    if (/^https?:\/\//i.test(photo)) {
+      return res.redirect(302, photo);
+    }
+
+    const match = /^data:(image\/(?:jpeg|jpg|png));base64,(.+)$/i.exec(photo);
+    if (!match) {
+      return res.status(404).json({ ok: false, message: "Photo not found" });
+    }
+
+    res.setHeader("Content-Type", match[1].replace("image/jpg", "image/jpeg"));
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    return res.send(Buffer.from(match[2], "base64"));
+  } catch (error) {
+    return next(error);
   }
 });
 
@@ -116,11 +157,14 @@ router.post("/", upload.single("photo"), async (req, res, next) => {
       });
     }
 
-    await connectDB();
-
-    const uploadResult = await uploadBuffer(req.file.buffer, {
-      public_id: `${Date.now()}-${values.firstName}-${values.lastName}`.replace(/[^a-z0-9-]/gi, "-"),
-    });
+    const uploadPublicId = `${Date.now()}-${values.firstName}-${values.lastName}`.replace(
+      /[^a-z0-9-]/gi,
+      "-",
+    );
+    const [uploadResult] = await Promise.all([
+      uploadBuffer(req.file.buffer, { public_id: uploadPublicId }),
+      connectDB(),
+    ]);
 
     const photoUrl =
       uploadResult?.secure_url ||
