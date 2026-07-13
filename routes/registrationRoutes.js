@@ -157,14 +157,35 @@ router.post("/", upload.single("photo"), async (req, res, next) => {
       });
     }
 
+    await connectDB();
+
+    // Check for duplicate entries
+    const existingRegistration = await Registration.findOne({
+      $or: [
+        { email: values.email },
+        { mobile: values.mobile },
+        { whatsappNumber: values.whatsappNumber },
+      ],
+    }).lean();
+
+    if (existingRegistration) {
+      const duplicateField = existingRegistration.email === values.email
+        ? "email"
+        : existingRegistration.mobile === values.mobile
+        ? "mobile"
+        : "whatsappNumber";
+      return res.status(409).json({
+        ok: false,
+        message: `This ${duplicateField} is already registered. Please use a different ${duplicateField}.`,
+        errors: { [duplicateField]: `This ${duplicateField} is already registered` },
+      });
+    }
+
     const uploadPublicId = `${Date.now()}-${values.firstName}-${values.lastName}`.replace(
       /[^a-z0-9-]/gi,
       "-",
     );
-    const [uploadResult] = await Promise.all([
-      uploadBuffer(req.file.buffer, { public_id: uploadPublicId }),
-      connectDB(),
-    ]);
+    const uploadResult = await uploadBuffer(req.file.buffer, { public_id: uploadPublicId });
 
     const photoUrl =
       uploadResult?.secure_url ||
