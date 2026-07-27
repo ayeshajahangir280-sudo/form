@@ -37,14 +37,35 @@ function asString(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizePhone(value) {
+  const phone = asString(value);
+  if (/^\+9715\d{8}$/.test(phone)) return `0${phone.slice(4)}`;
+  return phone;
+}
+
+function equivalentPhoneValues(value) {
+  const normalized = normalizePhone(value);
+  if (/^05\d{8}$/.test(normalized)) return [normalized, `+971${normalized.slice(1)}`];
+  return [normalized];
+}
+
+function duplicateResponse(res, field) {
+  const label = field === "email" ? "email address" : "mobile number";
+  return res.status(409).json({
+    ok: false,
+    message: `A registration with this ${label} already exists. Please use a different ${label}.`,
+    errors: { [field]: `This ${label} is already registered.` },
+  });
+}
+
 function validateRegistration(body, file) {
   const errors = {};
   const values = {
     firstName: asString(body.firstName),
     lastName: asString(body.lastName),
-    mobile: asString(body.mobile),
+    mobile: normalizePhone(body.mobile),
     email: asString(body.email).toLowerCase(),
-    whatsappNumber: asString(body.whatsappNumber),
+    whatsappNumber: normalizePhone(body.whatsappNumber),
     jerseyName: asString(body.jerseyName),
     jerseyNumber: asString(body.jerseyNumber),
     jerseySize: asString(body.jerseySize),
@@ -180,26 +201,20 @@ router.post("/", upload.single("photo"), async (req, res, next) => {
 
     await connectDB();
 
-    // Check for duplicate entries
+    // Give a field-specific response before uploading the photo. Unique indexes
+    // on email and mobile provide the final guard against simultaneous requests.
     const existingRegistration = await Registration.findOne({
       $or: [
         { email: values.email },
-        { mobile: values.mobile },
-        { whatsappNumber: values.whatsappNumber },
+        { mobile: { $in: equivalentPhoneValues(values.mobile) } },
       ],
     }).lean();
 
     if (existingRegistration) {
-      const duplicateField = existingRegistration.email === values.email
-        ? "email"
-        : existingRegistration.mobile === values.mobile
-        ? "mobile"
-        : "whatsappNumber";
-      return res.status(409).json({
-        ok: false,
-        message: `This ${duplicateField} is already registered. Please use a different ${duplicateField}.`,
-        errors: { [duplicateField]: `This ${duplicateField} is already registered` },
-      });
+      return duplicateResponse(
+        res,
+        existingRegistration.email === values.email ? "email" : "mobile",
+      );
     }
 
     const uploadPublicId = `${Date.now()}-${values.firstName}-${values.lastName}`.replace(
@@ -215,6 +230,8 @@ router.post("/", upload.single("photo"), async (req, res, next) => {
 
     const registration = await Registration.create({
       ...values,
+      normalizedEmail: values.email,
+      normalizedMobile: values.mobile,
       fullName: `${values.firstName} ${values.lastName}`,
       photoPath,
       photoUrl,
@@ -228,6 +245,16 @@ router.post("/", upload.single("photo"), async (req, res, next) => {
       registration: mapRegistration(registration),
     });
   } catch (error) {
+    if (error?.code === 11000) {
+      const duplicateField = Object.prototype.hasOwnProperty.call(
+        error.keyPattern || {},
+        "normalizedEmail",
+      )
+        ? "email"
+        : "mobile";
+      return duplicateResponse(res, duplicateField);
+    }
+
     if (error instanceof mongoose.Error.ValidationError) {
       return res.status(400).json({
         ok: false,

@@ -14,6 +14,8 @@ const registrationSchema = new mongoose.Schema(
       maxlength: 255,
       index: true,
     },
+    normalizedEmail: { type: String, required: true, select: false, unique: true, sparse: true },
+    normalizedMobile: { type: String, required: true, select: false, unique: true, sparse: true },
     whatsappNumber: { type: String, required: true, trim: true },
     jerseyName: { type: String, required: true, trim: true, maxlength: 80 },
     jerseyNumber: { type: String, required: true, trim: true },
