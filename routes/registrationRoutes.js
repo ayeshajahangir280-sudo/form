@@ -13,6 +13,19 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const jerseySizes = new Set(["Small", "Medium", "Large", "XL", "XXL", "3XL", "4XL"]);
 const sleeveOptions = new Set(["Full Sleeves", "Half Sleeves"]);
 const availabilityOptions = new Set(["Available all matches", "Missing few matches"]);
+const franchiseInterestOptions = new Set([
+  "Yes, I am interested.",
+  "No, I am not interested.",
+]);
+const matchOptions = new Set([
+  "20 Aug 2026 — 21:00",
+  "23 Aug 2026 — 07:30",
+  "25 Aug 2026 — 21:00",
+  "30 Aug 2026 — 07:30",
+  "01 Sep 2026 — 21:00",
+  "03 Sep 2026 — 21:00",
+  "06 Sep 2026 — 07:30",
+]);
 
 function asArray(value) {
   if (Array.isArray(value)) return value.filter(Boolean);
@@ -39,6 +52,7 @@ function validateRegistration(body, file) {
     currentClub: asString(body.currentClub),
     availability: asString(body.availability),
     notAvailableOn: asArray(body.notAvailableOn),
+    franchiseInterest: asString(body.franchiseInterest),
     feeAgreement: body.feeAgreement === true || body.feeAgreement === "true",
   };
 
@@ -57,6 +71,12 @@ function validateRegistration(body, file) {
   if (!availabilityOptions.has(values.availability)) errors.availability = "Select availability";
   if (values.availability === "Missing few matches" && values.notAvailableOn.length === 0) {
     errors.notAvailableOn = "Select at least one match you are not available on";
+  }
+  if (values.notAvailableOn.some((match) => !matchOptions.has(match))) {
+    errors.notAvailableOn = "Select only matches from the Indoor Community League 1.0 schedule";
+  }
+  if (!franchiseInterestOptions.has(values.franchiseInterest)) {
+    errors.franchiseInterest = "Select whether you are interested in owning a team franchise";
   }
   if (!values.feeAgreement) errors.feeAgreement = "You must agree to the registration and match fees";
   if (!file) errors.photo = "Upload a clear headshot photo under 2 MB";
@@ -86,6 +106,7 @@ function mapRegistration(registration) {
     currentClub: registration.currentClub,
     availability: registration.availability,
     notAvailableOn: registration.notAvailableOn,
+    franchiseInterest: registration.franchiseInterest,
     feeAgreement: registration.feeAgreement,
     photoPath: photoUrl,
     photoUrl,
@@ -99,7 +120,7 @@ router.get("/", async (_req, res, next) => {
     const registrations = await Registration.find()
       .sort({ createdAt: -1 })
       .select(
-        "firstName lastName fullName email mobile whatsappNumber jerseyName jerseyNumber jerseySize preferredSleeves currentClub availability notAvailableOn feeAgreement photoUrl photoStorage createdAt",
+        "firstName lastName fullName email mobile whatsappNumber jerseyName jerseyNumber jerseySize preferredSleeves currentClub availability notAvailableOn franchiseInterest feeAgreement photoUrl photoStorage createdAt",
       )
       .limit(500)
       .lean({ virtuals: true });

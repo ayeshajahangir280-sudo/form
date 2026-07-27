@@ -43,7 +43,9 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.get("/", (_req, res) => {
   res.json({
     ok: true,
-    service: "Indoor Cricket Rising League 3 registration API",
+    service: "Indoor Community League 1.0 registration API",
+    registrationFee: "AED 50/-",
+    matchFee: "AED 40/- per match",
     routes: ["/api/health", "/api/registrations"],
   });
 });

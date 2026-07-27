@@ -34,6 +34,11 @@ const registrationSchema = new mongoose.Schema(
       enum: ["Available all matches", "Missing few matches"],
     },
     notAvailableOn: { type: [String], default: [] },
+    franchiseInterest: {
+      type: String,
+      required: true,
+      enum: ["Yes, I am interested.", "No, I am not interested."],
+    },
     feeAgreement: { type: Boolean, required: true },
     photoPath: { type: String, default: null },
     photoUrl: { type: String, required: true },

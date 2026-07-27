@@ -1,4 +1,4 @@
-# Indoor Champions Registration Backend
+# Indoor Community League 1.0 Registration Backend
 
 Express + MongoDB + Cloudinary backend for the registration form. It is ready for Render Web Service deployment.
 
@@ -26,7 +26,7 @@ The API runs at `http://localhost:4000`.
 
 ## Render deployment
 
-Deploy `D:\Ayes\New folder\form` as a Render Web Service.
+Deploy the `form` directory as a Render Web Service.
 
 - Build command: `npm install`
 - Start command: `npm start`
@@ -55,3 +55,7 @@ CLOUDINARY_FOLDER=registration-photos
 - `POST /api/registrations`
 
 After Render deploys, copy the Render backend URL and set the frontend API base URL to that Render URL.
+
+The registration endpoint validates the seven Indoor Community League 1.0 match slots,
+the AED 50/- registration and AED 40/- per-match fee agreement, and the required
+team-franchise interest response submitted by the frontend.
