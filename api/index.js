@@ -60,7 +60,15 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+app.post("/api/registrations", (_req, res) => {
+  res.status(403).json({
+    ok: false,
+    message: "Registrations are currently closed.",
+  });
+});
+
 app.use("/api/registrations", registrationRoutes);
+app.use("/api/private-registration-7h4k9m", registrationRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ ok: false, message: "Route not found" });
