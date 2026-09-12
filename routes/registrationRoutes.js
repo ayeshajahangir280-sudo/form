@@ -41,6 +41,10 @@ function asString(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function asBoolean(value) {
+  return value === true || value === "true";
+}
+
 function normalizePhone(value) {
   const phone = asString(value);
   if (/^\+9715\d{8}$/.test(phone)) return `0${phone.slice(4)}`;
@@ -78,7 +82,7 @@ function validateRegistration(body, file) {
     availability: asString(body.availability),
     notAvailableOn: asArray(body.notAvailableOn),
     franchiseInterest: asString(body.franchiseInterest),
-    feeAgreement: body.feeAgreement === true || body.feeAgreement === "true",
+    feeAgreement: asBoolean(body.feeAgreement),
     eventKey: asString(body.eventKey) || currentEventKey,
   };
 
@@ -145,7 +149,13 @@ router.get("/", async (req, res, next) => {
   try {
     await connectDB();
     const eventKey = asString(req.query.eventKey) || currentEventKey;
-    const filter = eventKey === "all" ? {} : { eventKey };
+    const includeLegacy = asBoolean(req.query.includeLegacy);
+    const filter =
+      eventKey === "all"
+        ? {}
+        : includeLegacy
+          ? { $or: [{ eventKey }, { eventKey: { $exists: false } }, { eventKey: "" }] }
+          : { eventKey };
     const registrations = await Registration.find(filter)
       .sort({ createdAt: -1 })
       .select(
