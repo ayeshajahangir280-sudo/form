@@ -8,6 +8,7 @@ const Registration = require("../models/Registration");
 
 const router = express.Router();
 
+const currentEventKey = "acl-2026-oct";
 const phoneRegex = /^(\+9715\d{8}|\d{10})$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const jerseySizes = new Set(["Small", "Medium", "Large", "XL", "XXL", "3XL", "4XL"]);
@@ -18,6 +19,9 @@ const franchiseInterestOptions = new Set([
   "No, I am not interested.",
 ]);
 const matchOptions = new Set([
+  "09 Oct 2026",
+  "10 Oct 2026",
+  "11 Oct 2026",
   "20 Aug 2026 — 21:00",
   "23 Aug 2026 — 07:30",
   "25 Aug 2026 — 21:00",
@@ -75,6 +79,7 @@ function validateRegistration(body, file) {
     notAvailableOn: asArray(body.notAvailableOn),
     franchiseInterest: asString(body.franchiseInterest),
     feeAgreement: body.feeAgreement === true || body.feeAgreement === "true",
+    eventKey: asString(body.eventKey) || currentEventKey,
   };
 
   if (!values.firstName || values.firstName.length > 80) errors.firstName = "First name is required";
@@ -94,7 +99,7 @@ function validateRegistration(body, file) {
     errors.notAvailableOn = "Select at least one match you are not available on";
   }
   if (values.notAvailableOn.some((match) => !matchOptions.has(match))) {
-    errors.notAvailableOn = "Select only matches from the Indoor Community League 1.0 schedule";
+    errors.notAvailableOn = "Select only matches from the Avengers Community League 1.0 schedule";
   }
   if (!franchiseInterestOptions.has(values.franchiseInterest)) {
     errors.franchiseInterest = "Select whether you are interested in owning a team franchise";
@@ -114,6 +119,7 @@ function mapRegistration(registration) {
 
   return {
     id,
+    eventKey: registration.eventKey,
     firstName: registration.firstName,
     lastName: registration.lastName,
     fullName: registration.fullName,
@@ -135,13 +141,15 @@ function mapRegistration(registration) {
   };
 }
 
-router.get("/", async (_req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
     await connectDB();
-    const registrations = await Registration.find()
+    const eventKey = asString(req.query.eventKey) || currentEventKey;
+    const filter = eventKey === "all" ? {} : { eventKey };
+    const registrations = await Registration.find(filter)
       .sort({ createdAt: -1 })
       .select(
-        "firstName lastName fullName email mobile whatsappNumber jerseyName jerseyNumber jerseySize preferredSleeves currentClub availability notAvailableOn franchiseInterest feeAgreement photoUrl photoStorage createdAt",
+        "eventKey firstName lastName fullName email mobile whatsappNumber jerseyName jerseyNumber jerseySize preferredSleeves currentClub availability notAvailableOn franchiseInterest feeAgreement photoUrl photoStorage createdAt",
       )
       .limit(500)
       .lean({ virtuals: true });
@@ -204,6 +212,7 @@ router.post("/", upload.single("photo"), async (req, res, next) => {
     // Give a field-specific response before uploading the photo. Unique indexes
     // on email and mobile provide the final guard against simultaneous requests.
     const existingRegistration = await Registration.findOne({
+      eventKey: values.eventKey,
       $or: [
         { email: values.email },
         { mobile: { $in: equivalentPhoneValues(values.mobile) } },

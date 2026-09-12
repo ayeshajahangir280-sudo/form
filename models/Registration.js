@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const registrationSchema = new mongoose.Schema(
   {
+    eventKey: { type: String, trim: true, index: true },
     firstName: { type: String, required: true, trim: true, maxlength: 80 },
     lastName: { type: String, required: true, trim: true, maxlength: 80 },
     fullName: { type: String, required: true, trim: true, maxlength: 170 },
@@ -14,8 +15,8 @@ const registrationSchema = new mongoose.Schema(
       maxlength: 255,
       index: true,
     },
-    normalizedEmail: { type: String, required: true, select: false, unique: true, sparse: true },
-    normalizedMobile: { type: String, required: true, select: false, unique: true, sparse: true },
+    normalizedEmail: { type: String, required: true, select: false },
+    normalizedMobile: { type: String, required: true, select: false },
     whatsappNumber: { type: String, required: true, trim: true },
     jerseyName: { type: String, required: true, trim: true, maxlength: 80 },
     jerseyNumber: { type: String, required: true, trim: true },
@@ -65,6 +66,9 @@ const registrationSchema = new mongoose.Schema(
     },
   },
 );
+
+registrationSchema.index({ eventKey: 1, normalizedEmail: 1 }, { unique: true, sparse: true });
+registrationSchema.index({ eventKey: 1, normalizedMobile: 1 }, { unique: true, sparse: true });
 
 module.exports =
   mongoose.models.Registration || mongoose.model("Registration", registrationSchema);
