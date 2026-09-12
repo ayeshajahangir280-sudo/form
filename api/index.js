@@ -19,12 +19,16 @@ const defaultAllowedOrigins = [
 
 const allowedOrigins = (process.env.CORS_ORIGIN || defaultAllowedOrigins.join(","))
   .split(",")
-  .map((origin) => origin.trim())
+  .map((origin) => normalizeOrigin(origin))
   .filter(Boolean);
+
+function normalizeOrigin(origin) {
+  return origin.trim().replace(/\/+$/, "");
+}
 
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(normalizeOrigin(origin))) {
       callback(null, true);
       return;
     }
