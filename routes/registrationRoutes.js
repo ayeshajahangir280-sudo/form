@@ -206,6 +206,29 @@ router.get("/:id/photo", async (req, res, next) => {
   }
 });
 
+router.delete("/:id", async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(404).json({ ok: false, message: "Registration not found" });
+    }
+
+    await connectDB();
+    const registration = await Registration.findByIdAndDelete(req.params.id).lean();
+
+    if (!registration) {
+      return res.status(404).json({ ok: false, message: "Registration not found" });
+    }
+
+    return res.json({
+      ok: true,
+      message: "Registration deleted successfully.",
+      registration: mapRegistration(registration),
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 router.post("/", upload.single("photo"), async (req, res, next) => {
   try {
     const { errors, values } = validateRegistration(req.body, req.file);
