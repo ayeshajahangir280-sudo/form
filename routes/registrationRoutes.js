@@ -139,8 +139,6 @@ function mapRegistration(registration) {
     notAvailableOn: registration.notAvailableOn,
     franchiseInterest: registration.franchiseInterest,
     feeAgreement: registration.feeAgreement,
-    manualPaid: Boolean(registration.manualPaid),
-    paidAt: registration.paidAt,
     photoPath: photoUrl,
     photoUrl,
     createdAt: registration.createdAt,
@@ -161,7 +159,7 @@ router.get("/", async (req, res, next) => {
     const registrations = await Registration.find(filter)
       .sort({ createdAt: -1 })
       .select(
-        "eventKey firstName lastName fullName email mobile whatsappNumber jerseyName jerseyNumber jerseySize preferredSleeves currentClub availability notAvailableOn franchiseInterest feeAgreement manualPaid paidAt photoUrl photoStorage createdAt",
+        "eventKey firstName lastName fullName email mobile whatsappNumber jerseyName jerseyNumber jerseySize preferredSleeves currentClub availability notAvailableOn franchiseInterest feeAgreement photoUrl photoStorage createdAt",
       )
       .limit(500)
       .lean({ virtuals: true });
@@ -224,38 +222,6 @@ router.delete("/:id", async (req, res, next) => {
     return res.json({
       ok: true,
       message: "Registration deleted successfully.",
-      registration: mapRegistration(registration),
-    });
-  } catch (error) {
-    return next(error);
-  }
-});
-
-router.patch("/:id/payment", async (req, res, next) => {
-  try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(404).json({ ok: false, message: "Registration not found" });
-    }
-
-    const manualPaid = asBoolean(req.body.manualPaid);
-
-    await connectDB();
-    const registration = await Registration.findByIdAndUpdate(
-      req.params.id,
-      {
-        manualPaid,
-        paidAt: manualPaid ? new Date() : null,
-      },
-      { new: true },
-    ).lean();
-
-    if (!registration) {
-      return res.status(404).json({ ok: false, message: "Registration not found" });
-    }
-
-    return res.json({
-      ok: true,
-      message: manualPaid ? "Registration marked paid." : "Registration marked unpaid.",
       registration: mapRegistration(registration),
     });
   } catch (error) {

@@ -43,8 +43,6 @@ const registrationSchema = new mongoose.Schema(
       enum: ["Yes, I am interested.", "No, I am not interested."],
     },
     feeAgreement: { type: Boolean, required: true },
-    manualPaid: { type: Boolean, default: false },
-    paidAt: { type: Date, default: null },
     photoPath: { type: String, default: null },
     photoUrl: { type: String, required: true },
     photoStorage: {
